@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSONata Web App</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/material.min.css">
+    <style>
+        body {
+            display: flex;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #263238;
+            color: #ffffff;
+        }
+        #jsonInput, #queryInput, #resultOutput {
+            width: 33.33%;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #ccc;
+        }
+        #resultOutput {
+            border-right: none;
+        }
+        .CodeMirror {
+            flex-grow: 1;
+            background-color: #2e3b4e;
+        }
+        h3 {
+            margin: 0;
+            padding: 10px;
+            background-color: #37474f;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="jsonInput">
+        <h3>JSON Input</h3>
+        <textarea id="jsonEditor">{"example": "value"}</textarea>
+    </div>
+    <div id="queryInput">
+        <h3>JSONata Query</h3>
+        <textarea id="queryEditor">$</textarea>
+    </div>
+    <div id="resultOutput">
+        <h3>Result</h3>
+        <textarea id="resultEditor" readonly></textarea>
+    </div>
+
+    <!-- Load CodeMirror library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/json/json.min.js"></script>
+
+    <!-- Load JSONata library -->
+    <script src="https://cdn.jsdelivr.net/npm/jsonata/jsonata.min.js"></script>
+
+    <!-- Main script -->
+    <script>
+        const jsonEditor = CodeMirror.fromTextArea(document.getElementById("jsonEditor"), {
+            mode: "application/json",
+            lineNumbers: true,
+            theme: "material"
+        });
+
+        const queryEditor = CodeMirror.fromTextArea(document.getElementById("queryEditor"), {
+            mode: "javascript",
+            lineNumbers: true,
+            theme: "material"
+        });
+
+        const resultEditor = CodeMirror.fromTextArea(document.getElementById("resultEditor"), {
+            mode: "application/json",
+            lineNumbers: true,
+            readOnly: true,
+            theme: "material"
+        });
+
+        // Function to process JSONata query and update result
+        function processJSONata() {
+            const jsonData = jsonEditor.getValue();
+            const jsonataQuery = queryEditor.getValue();
+            let result;
+
+            try {
+                const data = JSON.parse(jsonData);
+                console.log("Parsed JSON Data:", data);
+
+                const expression = jsonata(jsonataQuery);
+                const evaluation = expression.evaluate(data);
+
+                if (evaluation instanceof Promise) {
+                    evaluation.then(res => {
+                        console.log("JSONata Result:", res);
+                        resultEditor.setValue(JSON.stringify(res, null, 2));
+                    }).catch(error => {
+                        console.error("Error during evaluation:", error);
+                        resultEditor.setValue(`Error: ${error.message}`);
+                    });
+                } else {
+                    console.log("JSONata Result:", evaluation);
+                    resultEditor.setValue(JSON.stringify(evaluation, null, 2));
+                }
+            } catch (error) {
+                console.error("Error:", error);
+                resultEditor.setValue(`Error: ${error.message}`);
+            }
+        }
+
+        // Set up event listeners to process JSONata query on input change
+        jsonEditor.on('change', processJSONata);
+        queryEditor.on('change', processJSONata);
+
+        // Process the default JSON and query on initial load
+        processJSONata();
+    </script>
+</body>
+</html>
